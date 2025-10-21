@@ -246,6 +246,129 @@
             border-left: 3px solid #00b894;
         }
 
+        .item-actions {
+            display: flex;
+            gap: 5px;
+            margin-left: auto;
+        }
+
+        .item-action-btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            opacity: 0;
+        }
+
+        .item:hover .item-action-btn {
+            opacity: 1;
+        }
+
+        .item-action-btn.edit {
+            background: #3498db;
+            color: white;
+        }
+
+        .item-action-btn.delete {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .item-action-btn:hover {
+            transform: scale(1.1);
+        }
+
+        /* Modal generico */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        body.dark-mode .modal-content {
+            background: #2a2a3e;
+            color: #e0e0e0;
+        }
+
+        .modal-header {
+            font-size: 1.5em;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        body.dark-mode .modal-header {
+            color: #e0e0e0;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            font-size: 1em;
+            margin-bottom: 15px;
+            outline: none;
+        }
+
+        body.dark-mode .modal-input {
+            background: #1e1e2e;
+            color: #e0e0e0;
+            border-color: #667eea;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .modal-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn.save {
+            background: linear-gradient(45deg, #00b894, #55a3ff);
+            color: white;
+        }
+
+        .modal-btn.cancel {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-2px);
+        }
+
         .controls-row {
             display: flex;
             justify-content: center;
@@ -758,6 +881,18 @@
         </div>
     </div>
 
+    <!-- Modal per modificare oggetto -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <h2 class="modal-header">✏️ Modifica Oggetto</h2>
+            <input type="text" class="modal-input" id="editItemInput" placeholder="Nuovo nome...">
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" onclick="closeEditModal()">Annulla</button>
+                <button class="modal-btn save" onclick="saveEditItem()">Salva</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Dati delle categorie con i rispettivi oggetti
         const categories = {
@@ -838,6 +973,7 @@
         const fontSizes = ['small', 'medium', 'large', 'xlarge'];
         const fontLabels = ['Piccolo', 'Medio', 'Grande', 'Molto Grande'];
         let customItems = {}; // Oggetti personalizzati per categoria
+        let removedItems = {}; // Oggetti rimossi per categoria
 
         // ===== FUNZIONI PER GESTIONE OGGETTI PERSONALIZZATI =====
         
@@ -907,6 +1043,112 @@
             alert('✅ Oggetto aggiunto con successo!');
         }
 
+        // Rimuovi un oggetto
+        let itemToRemove = null;
+        function removeItem(categoryName, itemName) {
+            if (!confirm(`Vuoi davvero rimuovere "${itemName}"?`)) {
+                return;
+            }
+
+            // Inizializza l'array se non esiste
+            if (!removedItems[categoryName]) {
+                removedItems[categoryName] = [];
+            }
+
+            // Aggiungi alla lista rimossi
+            if (!removedItems[categoryName].includes(itemName)) {
+                removedItems[categoryName].push(itemName);
+            }
+
+            // Rimuovi da customItems se presente
+            if (customItems[categoryName]) {
+                const index = customItems[categoryName].indexOf(itemName);
+                if (index > -1) {
+                    customItems[categoryName].splice(index, 1);
+                }
+            }
+
+            // Salva e rigenera
+            saveState();
+            generateCategories();
+            loadState();
+            updateStats();
+        }
+
+        // Modifica un oggetto
+        let itemToEdit = null;
+        let categoryToEdit = null;
+
+        function editItem(categoryName, oldItemName) {
+            itemToEdit = oldItemName;
+            categoryToEdit = categoryName;
+            document.getElementById('editItemInput').value = oldItemName;
+            document.getElementById('editModal').classList.add('show');
+            document.getElementById('editItemInput').focus();
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('show');
+            itemToEdit = null;
+            categoryToEdit = null;
+        }
+
+        function saveEditItem() {
+            const newName = document.getElementById('editItemInput').value.trim();
+            
+            if (!newName) {
+                alert('⚠️ Inserisci un nome valido!');
+                return;
+            }
+
+            if (!itemToEdit || !categoryToEdit) return;
+
+            // Controlla se esiste già un oggetto con questo nome
+            const allCategoryItems = [...categories[categoryToEdit].items];
+            if (customItems[categoryToEdit]) {
+                allCategoryItems.push(...customItems[categoryToEdit]);
+            }
+
+            if (allCategoryItems.includes(newName) && newName !== itemToEdit) {
+                alert('⚠️ Esiste già un oggetto con questo nome!');
+                return;
+            }
+
+            // Se è un oggetto personalizzato, modificalo
+            if (customItems[categoryToEdit] && customItems[categoryToEdit].includes(itemToEdit)) {
+                const index = customItems[categoryToEdit].indexOf(itemToEdit);
+                customItems[categoryToEdit][index] = newName;
+            } else {
+                // Se è un oggetto di default, rimuovilo e crea uno personalizzato
+                if (!removedItems[categoryToEdit]) {
+                    removedItems[categoryToEdit] = [];
+                }
+                removedItems[categoryToEdit].push(itemToEdit);
+                
+                if (!customItems[categoryToEdit]) {
+                    customItems[categoryToEdit] = [];
+                }
+                customItems[categoryToEdit].push(newName);
+            }
+
+            // Aggiorna anche gli oggetti spuntati se necessario
+            const checkedItems = JSON.parse(localStorage.getItem('bagagliCheckedItems') || '[]');
+            const checkedIndex = checkedItems.indexOf(itemToEdit);
+            if (checkedIndex > -1) {
+                checkedItems[checkedIndex] = newName;
+                localStorage.setItem('bagagliCheckedItems', JSON.stringify(checkedItems));
+            }
+
+            // Salva e rigenera
+            saveState();
+            closeEditModal();
+            generateCategories();
+            loadState();
+            updateStats();
+            
+            alert('✅ Oggetto modificato con successo!');
+        }
+
         // Aggiungi event listeners agli elementi
         function addEventListeners() {
             // Event listener per gli item
@@ -960,6 +1202,7 @@
                 fontSize: currentFontSize,
                 viewMode: viewMode,
                 customItems: customItems,
+                removedItems: removedItems,
                 exportDate: new Date().toISOString()
             };
 
@@ -998,6 +1241,11 @@
                     // Carica oggetti personalizzati
                     if (data.customItems) {
                         customItems = data.customItems;
+                    }
+                    
+                    // Carica oggetti rimossi
+                    if (data.removedItems) {
+                        removedItems = data.removedItems;
                     }
                     
                     // Rigenera le categorie con gli oggetti personalizzati
@@ -1171,6 +1419,7 @@
             localStorage.setItem('bagagliFontSize', currentFontSize);
             localStorage.setItem('bagagliViewMode', viewMode);
             localStorage.setItem('bagagliCustomItems', JSON.stringify(customItems));
+            localStorage.setItem('bagagliRemovedItems', JSON.stringify(removedItems));
         }
 
         // Carica lo stato dal localStorage
@@ -1179,12 +1428,21 @@
             const savedFontSize = localStorage.getItem('bagagliFontSize');
             const savedViewMode = localStorage.getItem('bagagliViewMode');
             const savedCustomItems = localStorage.getItem('bagagliCustomItems');
+            const savedRemovedItems = localStorage.getItem('bagagliRemovedItems');
 
             if (savedCustomItems) {
                 try {
                     customItems = JSON.parse(savedCustomItems);
                 } catch (e) {
                     customItems = {};
+                }
+            }
+
+            if (savedRemovedItems) {
+                try {
+                    removedItems = JSON.parse(savedRemovedItems);
+                } catch (e) {
+                    removedItems = {};
                 }
             }
 
@@ -1347,9 +1605,16 @@
                 categoryDiv.className = 'category';
                 
                 // Combina oggetti di default con oggetti personalizzati
-                const allCategoryItems = [...categoryData.items];
+                let allCategoryItems = [...categoryData.items];
                 if (customItems[categoryName]) {
                     allCategoryItems.push(...customItems[categoryName]);
+                }
+
+                // Rimuovi gli oggetti nella lista removedItems
+                if (removedItems[categoryName]) {
+                    allCategoryItems = allCategoryItems.filter(item => 
+                        !removedItems[categoryName].includes(item)
+                    );
                 }
                 
                 categoryDiv.innerHTML = `
@@ -1365,6 +1630,10 @@
                                 <div class="item ${isCustom ? 'custom-item' : ''}" data-item-text="${item}">
                                     <input type="checkbox">
                                     <span class="item-text">${item}</span>
+                                    <div class="item-actions">
+                                        <button class="item-action-btn edit" onclick="event.stopPropagation(); editItem('${categoryName}', '${item}')">✏️</button>
+                                        <button class="item-action-btn delete" onclick="event.stopPropagation(); removeItem('${categoryName}', '${item}')">🗑️</button>
+                                    </div>
                                 </div>
                             `;
                         }).join('')}
@@ -1389,10 +1658,14 @@
             // Aggiorna l'array di tutti gli oggetti
             allItems = [];
             Object.entries(categories).forEach(([categoryName, category]) => {
-                allItems = allItems.concat(category.items);
+                let items = [...category.items];
                 if (customItems[categoryName]) {
-                    allItems = allItems.concat(customItems[categoryName]);
+                    items = items.concat(customItems[categoryName]);
                 }
+                if (removedItems[categoryName]) {
+                    items = items.filter(item => !removedItems[categoryName].includes(item));
+                }
+                allItems = allItems.concat(items);
             });
         }
 
