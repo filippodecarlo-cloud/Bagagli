@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generatore Icone PWA</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            color: #2c3e50;
+        }
+        canvas {
+            margin: 20px 0;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+        }
+        button {
+            padding: 12px 24px;
+            margin: 10px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            font-size: 1em;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        .instructions {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            text-align: left;
+        }
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Generatore Icone PWA</h1>
+        <p>Clicca i pulsanti per scaricare le icone necessarie</p>
+
+        <div>
+            <h3>Icona 192x192</h3>
+            <canvas id="canvas192" width="192" height="192"></canvas>
+            <br>
+            <button onclick="downloadIcon(192)">📥 Scarica icon-192.png</button>
+        </div>
+
+        <div>
+            <h3>Icona 512x512</h3>
+            <canvas id="canvas512" width="512" height="512"></canvas>
+            <br>
+            <button onclick="downloadIcon(512)">📥 Scarica icon-512.png</button>
+        </div>
+
+        <div class="instructions">
+            <h3>📋 Istruzioni:</h3>
+            <ol>
+                <li>Clicca sui pulsanti qui sopra per scaricare le due icone</li>
+                <li>Salva entrambi i file nella stessa cartella di index.html</li>
+                <li>I nomi dei file devono essere esattamente: <strong>icon-192.png</strong> e <strong>icon-512.png</strong></li>
+                <li>Ricarica la pagina index.html per vedere la PWA in azione!</li>
+            </ol>
+            <p><strong>Nota:</strong> Puoi sostituire queste icone con le tue personalizzate in seguito, basta che abbiano le stesse dimensioni e nomi.</p>
+        </div>
+    </div>
+
+    <script>
+        function createIcon(size) {
+            const canvas = document.getElementById(`canvas${size}`);
+            const ctx = canvas.getContext('2d');
+
+            // Sfondo con gradiente
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#667eea');
+            gradient.addColorStop(1, '#764ba2');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+
+            // Emoji bagaglio
+            ctx.font = `${size * 0.6}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('✈️', size / 2, size / 2);
+
+            return canvas;
+        }
+
+        function downloadIcon(size) {
+            const canvas = document.getElementById(`canvas${size}`);
+            const link = document.createElement('a');
+            link.download = `icon-${size}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // Genera le icone al caricamento della pagina
+        window.addEventListener('load', () => {
+            createIcon(192);
+            createIcon(512);
+        });
+    </script>
+</body>
+</html>
