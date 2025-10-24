@@ -4,6 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestione Bagagli - Lista Interattiva</title>
+
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Organizza la tua valigia in modo intelligente">
+    <meta name="theme-color" content="#667eea">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Bagagli">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <style>
         * {
             margin: 0;
@@ -1935,6 +1950,70 @@
 
         // Avvia l'app quando la pagina è caricata
         document.addEventListener('DOMContentLoaded', initApp);
+
+        // ===== REGISTRAZIONE SERVICE WORKER PER PWA =====
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker registrato con successo:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('Registrazione Service Worker fallita:', error);
+                    });
+            });
+        }
+
+        // Gestione installazione PWA
+        let deferredPrompt;
+        const installBanner = document.createElement('div');
+        installBanner.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            gap: 15px;
+            animation: slideUp 0.3s ease;
+        `;
+        installBanner.innerHTML = `
+            <span style="font-weight: 600;">📱 Installa l'app sul tuo dispositivo!</span>
+            <button id="installBtn" style="background: white; color: #667eea; border: none; padding: 8px 15px; border-radius: 15px; font-weight: 600; cursor: pointer;">Installa</button>
+            <button id="dismissBtn" style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 8px 15px; border-radius: 15px; font-weight: 600; cursor: pointer;">Chiudi</button>
+        `;
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+
+            // Mostra banner di installazione
+            document.body.appendChild(installBanner);
+            installBanner.style.display = 'flex';
+
+            document.getElementById('installBtn').addEventListener('click', async () => {
+                installBanner.style.display = 'none';
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response: ${outcome}`);
+                deferredPrompt = null;
+            });
+
+            document.getElementById('dismissBtn').addEventListener('click', () => {
+                installBanner.style.display = 'none';
+            });
+        });
+
+        window.addEventListener('appinstalled', () => {
+            console.log('PWA installata con successo!');
+            deferredPrompt = null;
+        });
     </script>
 </body>
 </html>
