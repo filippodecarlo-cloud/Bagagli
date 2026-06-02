@@ -1,0 +1,3 @@
+# Artefatti locali (non parte dell'app)
+.claude/
+*.url

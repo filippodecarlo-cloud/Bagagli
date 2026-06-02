@@ -851,6 +851,44 @@
             letter-spacing: 1px;
         }
 
+        /* Notifiche toast */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 3000;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .toast {
+            min-width: 250px;
+            max-width: 90vw;
+            padding: 14px 22px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast-success { background: linear-gradient(45deg, #00b894, #55a3ff); }
+        .toast-error   { background: linear-gradient(45deg, #e74c3c, #f5576c); }
+        .toast-warning { background: linear-gradient(45deg, #f39c12, #f5576c); }
+        .toast-info    { background: linear-gradient(45deg, #667eea, #764ba2); }
+
         @media (max-width: 768px) {
             .container {
                 padding: 20px;
@@ -1043,6 +1081,37 @@
         let customItems = {}; // Oggetti personalizzati per categoria
         let removedItems = {}; // Oggetti rimossi per categoria
 
+        // Mette al sicuro testo inserito dall'utente prima di metterlo nell'HTML
+        // (evita che apostrofi o caratteri speciali rompano la pagina)
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // Mostra una notifica "toast" che sparisce da sola
+        function showToast(message, type = 'info') {
+            let container = document.getElementById('toastContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toastContainer';
+                container.className = 'toast-container';
+                document.body.appendChild(container);
+            }
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.add('show'));
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
         // ===== FUNZIONI PER GESTIONE OGGETTI PERSONALIZZATI =====
         
         // Mostra il form per aggiungere un oggetto
@@ -1079,7 +1148,7 @@
             const itemName = input.value.trim();
             
             if (!itemName) {
-                alert('⚠️ Inserisci il nome dell\'oggetto!');
+                showToast('⚠️ Inserisci il nome dell\'oggetto!', 'warning');
                 return;
             }
             
@@ -1095,7 +1164,7 @@
             }
             
             if (allCategoryItems.includes(itemName)) {
-                alert('⚠️ Questo oggetto esiste già nella lista!');
+                showToast('⚠️ Questo oggetto esiste già nella lista!', 'warning');
                 return;
             }
             
@@ -1108,7 +1177,7 @@
             loadState();
             updateStats();
             
-            alert('✅ Oggetto aggiunto con successo!');
+            showToast('✅ Oggetto aggiunto!', 'success');
         }
 
         // Rimuovi un oggetto
@@ -1165,7 +1234,7 @@
             const newName = document.getElementById('editItemInput').value.trim();
             
             if (!newName) {
-                alert('⚠️ Inserisci un nome valido!');
+                showToast('⚠️ Inserisci un nome valido!', 'warning');
                 return;
             }
 
@@ -1178,7 +1247,7 @@
             }
 
             if (allCategoryItems.includes(newName) && newName !== itemToEdit) {
-                alert('⚠️ Esiste già un oggetto con questo nome!');
+                showToast('⚠️ Esiste già un oggetto con questo nome!', 'warning');
                 return;
             }
 
@@ -1214,7 +1283,7 @@
             loadState();
             updateStats();
             
-            alert('✅ Oggetto modificato con successo!');
+            showToast('✅ Oggetto modificato!', 'success');
         }
 
         // Gestione menu dropdown per oggetti
@@ -1243,50 +1312,6 @@
                 closeAllMenus();
             }
         });
-
-        // Aggiungi event listeners agli elementi
-        function addEventListeners() {
-            // Event listener per gli item
-            document.querySelectorAll('.item').forEach(item => {
-                item.addEventListener('click', function(event) {
-                    toggleItem(this, event);
-                });
-            });
-
-            // Event listener per i pulsanti "Aggiungi Voce"
-            document.querySelectorAll('.add-item-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const categoryName = this.getAttribute('data-category');
-                    showAddItemForm(categoryName);
-                });
-            });
-
-            // Event listener per i pulsanti di salvataggio
-            document.querySelectorAll('.add-item-form-btn.save').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const categoryName = this.getAttribute('data-category');
-                    addCustomItem(categoryName);
-                });
-            });
-
-            // Event listener per i pulsanti di annullamento
-            document.querySelectorAll('.add-item-form-btn.cancel').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const categoryName = this.getAttribute('data-category');
-                    hideAddItemForm(categoryName);
-                });
-            });
-
-            // Event listener per Enter negli input
-            document.querySelectorAll('.add-item-input').forEach(input => {
-                input.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        const categoryName = this.getAttribute('data-category');
-                        addCustomItem(categoryName);
-                    }
-                });
-            });
-        }
 
         // ===== FINE FUNZIONI OGGETTI PERSONALIZZATI =====
 
@@ -1317,7 +1342,7 @@
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
 
-            alert('✅ Lista scaricata con successo!');
+            showToast('✅ Lista scaricata!', 'success');
         }
 
         // Import dei dati
@@ -1376,11 +1401,11 @@
                             updateHiddenSection();
                             saveState();
                             
-                            alert('✅ Lista caricata con successo!');
+                            showToast('✅ Lista caricata!', 'success');
                         }, 100);
                     }
                 } catch (error) {
-                    alert('❌ Errore nel caricamento del file. Assicurati che sia un file valido.');
+                    showToast('❌ Errore nel caricamento del file.', 'error');
                     console.error(error);
                 }
             };
@@ -1389,110 +1414,6 @@
             // Reset input per permettere di caricare lo stesso file
             event.target.value = '';
         }
-
-        // Condivisione tramite link
-        function shareList() {
-            const data = {
-                checkedItems: [],
-                fontSize: currentFontSize,
-                viewMode: viewMode
-            };
-
-            document.querySelectorAll('.item.checked').forEach(item => {
-                data.checkedItems.push(item.querySelector('.item-text').textContent);
-            });
-
-            // Comprimi i dati in base64
-            const dataStr = JSON.stringify(data);
-            const encoded = btoa(encodeURIComponent(dataStr));
-            
-            // Crea il link
-            const baseUrl = window.location.href.split('?')[0];
-            const shareUrl = `${baseUrl}?data=${encoded}`;
-            
-            document.getElementById('shareLink').textContent = shareUrl;
-            document.getElementById('shareModal').classList.add('show');
-        }
-
-        function closeShareModal() {
-            document.getElementById('shareModal').classList.remove('show');
-            document.getElementById('copyBtn').textContent = '📋 Copia';
-            document.getElementById('copyBtn').classList.remove('copied');
-        }
-
-        function copyShareLink() {
-            const link = document.getElementById('shareLink').textContent;
-            navigator.clipboard.writeText(link).then(() => {
-                const btn = document.getElementById('copyBtn');
-                btn.textContent = '✅ Copiato!';
-                btn.classList.add('copied');
-                
-                setTimeout(() => {
-                    btn.textContent = '📋 Copia';
-                    btn.classList.remove('copied');
-                }, 2000);
-            }).catch(err => {
-                alert('Errore nella copia del link. Copialo manualmente.');
-            });
-        }
-
-        // Carica dati da URL
-        function loadFromUrl() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const dataParam = urlParams.get('data');
-            
-            if (dataParam) {
-                try {
-                    const dataStr = decodeURIComponent(atob(dataParam));
-                    const data = JSON.parse(dataStr);
-                    
-                    // Applica i dati
-                    if (data.fontSize && fontSizes.includes(data.fontSize)) {
-                        setFontSize(data.fontSize);
-                    }
-                    
-                    if (data.viewMode) {
-                        viewMode = data.viewMode;
-                    }
-                    
-                    if (data.checkedItems && Array.isArray(data.checkedItems)) {
-                        document.querySelectorAll('.item').forEach(item => {
-                            const itemText = item.querySelector('.item-text').textContent;
-                            if (data.checkedItems.includes(itemText)) {
-                                const checkbox = item.querySelector('input[type="checkbox"]');
-                                checkbox.checked = true;
-                                item.classList.add('checked', 'hidden');
-                                
-                                hiddenItems.push({
-                                    text: itemText,
-                                    element: item
-                                });
-                            }
-                        });
-                        
-                        updateStats();
-                        updateProgress();
-                        updateHiddenSection();
-                        saveState();
-                        
-                        // Rimuovi il parametro dall'URL
-                        window.history.replaceState({}, document.title, window.location.pathname);
-                        
-                        alert('✅ Lista caricata dal link condiviso!');
-                    }
-                } catch (error) {
-                    console.error('Errore nel caricamento dei dati dall\'URL:', error);
-                }
-            }
-        }
-
-        // Chiudi modal cliccando fuori
-        document.addEventListener('click', function(event) {
-            const modal = document.getElementById('shareModal');
-            if (event.target === modal) {
-                closeShareModal();
-            }
-        });
 
         // Inizializza l'app
         function initApp() {
@@ -1641,7 +1562,7 @@
                 displayHiddenItems();
             } else if (showHiddenItems && hiddenItems.length === 0) {
                 // Se non ci sono oggetti nascosti, mostra un messaggio
-                alert('Non ci sono oggetti nascosti da visualizzare!');
+                showToast('Non ci sono oggetti nascosti da visualizzare!', 'info');
                 showHiddenItems = false;
             } else {
                 viewModeControls.style.display = 'none';
@@ -1715,26 +1636,24 @@
                 categoryDiv.innerHTML = `
                     <div class="category-header">
                         <span class="category-icon">${categoryData.icon}</span>
-                        <span class="category-title">${categoryName}</span>
+                        <span class="category-title">${escapeHtml(categoryName)}</span>
                         <span class="category-count">${allCategoryItems.length}</span>
                     </div>
                     <div class="item-list">
                         ${allCategoryItems.map((item, index) => {
                             const isCustom = customItems[categoryName] && customItems[categoryName].includes(item);
                             const itemId = `item-${categoryName.replace(/\s+/g, '-')}-${index}`;
+                            const safeItem = escapeHtml(item);
+                            const safeCategory = escapeHtml(categoryName);
                             return `
-                                <div class="item ${isCustom ? 'custom-item' : ''}" data-item-text="${item}">
+                                <div class="item ${isCustom ? 'custom-item' : ''}" data-item-text="${safeItem}" data-category="${safeCategory}">
                                     <input type="checkbox">
-                                    <span class="item-text">${item}</span>
+                                    <span class="item-text">${safeItem}</span>
                                     <div class="item-actions">
-                                        <button class="item-menu-btn" onclick="event.stopPropagation(); toggleItemMenu('${itemId}')">⋮</button>
+                                        <button class="item-menu-btn" data-menu-target="${itemId}">⋮</button>
                                         <div class="item-dropdown" id="${itemId}">
-                                            <div class="item-dropdown-item edit" onclick="event.stopPropagation(); editItem('${categoryName}', '${item}'); closeAllMenus();">
-                                                ✏️ Modifica
-                                            </div>
-                                            <div class="item-dropdown-item delete" onclick="event.stopPropagation(); removeItem('${categoryName}', '${item}'); closeAllMenus();">
-                                                🗑️ Elimina
-                                            </div>
+                                            <div class="item-dropdown-item edit">✏️ Modifica</div>
+                                            <div class="item-dropdown-item delete">🗑️ Elimina</div>
                                         </div>
                                     </div>
                                 </div>
@@ -1814,6 +1733,34 @@
                     }
                 });
             });
+
+            // Event listener per il menu a tre puntini di ogni oggetto
+            document.querySelectorAll('.item-menu-btn').forEach(btn => {
+                btn.addEventListener('click', function(event) {
+                    event.stopPropagation();
+                    toggleItemMenu(this.getAttribute('data-menu-target'));
+                });
+            });
+
+            // Event listener per "Modifica" nel menu
+            document.querySelectorAll('.item-dropdown-item.edit').forEach(el => {
+                el.addEventListener('click', function(event) {
+                    event.stopPropagation();
+                    const itemEl = this.closest('.item');
+                    editItem(itemEl.dataset.category, itemEl.dataset.itemText);
+                    closeAllMenus();
+                });
+            });
+
+            // Event listener per "Elimina" nel menu
+            document.querySelectorAll('.item-dropdown-item.delete').forEach(el => {
+                el.addEventListener('click', function(event) {
+                    event.stopPropagation();
+                    const itemEl = this.closest('.item');
+                    removeItem(itemEl.dataset.category, itemEl.dataset.itemText);
+                    closeAllMenus();
+                });
+            });
         }
 
         // Gestisce il click su un oggetto
@@ -1884,7 +1831,7 @@
         function updateProgress() {
             const totalItems = allItems.length;
             const checkedItems = document.querySelectorAll('.item.checked').length;
-            const progress = (checkedItems / totalItems) * 100;
+            const progress = totalItems > 0 ? (checkedItems / totalItems) * 100 : 0;
             
             document.getElementById('progressFill').style.width = progress + '%';
         }
@@ -1898,7 +1845,7 @@
                 const hiddenDiv = document.createElement('div');
                 hiddenDiv.className = 'hidden-item';
                 hiddenDiv.innerHTML = `
-                    <span>${item.text}</span>
+                    <span>${escapeHtml(item.text)}</span>
                     <button class="restore-btn" onclick="restoreItem(${index})">
                         Ripristina
                     </button>
