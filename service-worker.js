@@ -1,6 +1,7 @@
-const CACHE_NAME = 'bagagli-v1';
+const CACHE_NAME = 'bagagli-v2';
 const urlsToCache = [
   './index.html',
+  './categorie.js',
   './manifest.json'
 ];
 
@@ -35,36 +36,29 @@ self.addEventListener('activate', event => {
 });
 
 // Intercetta le richieste di rete
+// Strategia "prima la rete, poi la cache":
+//  - se sei ONLINE prendi sempre la versione più aggiornata dal sito
+//    (e la salvi in cache per la prossima volta);
+//  - se sei OFFLINE usi l'ultima versione salvata in cache.
+// Vantaggio: quando modifichi categorie.js (o index.html) le novità
+// arrivano da sole, senza dover cambiare il numero di versione qui sopra.
 self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request)
+    fetch(event.request)
       .then(response => {
-        // Se la risorsa è in cache, restituiscila
-        if (response) {
-          return response;
-        }
-
-        // Altrimenti, prova a scaricarla dalla rete
-        return fetch(event.request).then(response => {
-          // Controlla se la risposta è valida
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
-          }
-
-          // Clona la risposta
+        // Risposta valida: aggiorno la copia in cache
+        if (response && response.status === 200 && response.type === 'basic') {
           const responseToCache = response.clone();
-
-          // Aggiungi alla cache
-          caches.open(CACHE_NAME)
-            .then(cache => {
-              cache.put(event.request, responseToCache);
-            });
-
-          return response;
-        }).catch(() => {
-          // Se la rete non è disponibile e la risorsa non è in cache
-          // Restituisci una pagina offline di fallback se vuoi
-          return caches.match('./index.html');
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseToCache);
+          });
+        }
+        return response;
+      })
+      .catch(() => {
+        // Rete non disponibile: uso la cache, con index.html come fallback
+        return caches.match(event.request).then(cached => {
+          return cached || caches.match('./index.html');
         });
       })
   );
