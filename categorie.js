@@ -57,7 +57,7 @@ const categories = {
       "Pomate e medicinali", "Detersivo", "Filo Per Stendere", "Mollette",
       "Forbicine", "Ago/Filo", "Attak", "Collirio", "Cerotti", "Cotone idrofilo",
       "Assorbenti inizio", "Assorbenti fine", "Trusse", "Burro di cacao",
-      "Rasoio", "Schiuma da barba", "Cotton Fiok", "Tappi orecchie", "Spazzola",
+      "Rasoio", "Schiuma da barba", "Pennello da barba", "Cotton Fiok", "Tappi orecchie", "Spazzola",
       "Detergente intimo", "Spugna", "Fazzolettini", "Termometro", "Autan",
       "Salviettine detergenti", "Lenti a contatto", "Caricatore smartwatch",
       "Vitamine", "Reparil"
